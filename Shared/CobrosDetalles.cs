@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LuisJose_AP1_P2_Real.Shared
 {
-    public class CobrosDetalles
+    internal class CobrosDetalles
     {
     }
 }
