@@ -20,5 +20,9 @@
     <ProjectReference Include="..\Shared\LuisJose_AP1_P2_Real.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
+
 
 </Project>
