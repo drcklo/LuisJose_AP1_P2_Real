@@ -7,8 +7,8 @@ namespace LuisJose_AP1_P2_Real.Server.DAL
     {
         public Context(DbContextOptions<Context> options) : base(options) { }
         public DbSet<Clientes> Clientes { get; set; }
-        public DbSet<Cobros> Cobros { get; set; }
-        public DbSet<CobrosDetalles> CobrosDetalles { get; set; }
+        public DbSet<Ventas> Ventas { get; set; }
+        public DbSet<CobrosDetalle> CobrosDetalles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,5 +76,7 @@ namespace LuisJose_AP1_P2_Real.Server.DAL
                 Balance = 1900 
             });
         }
+
+        public DbSet<LuisJose_AP1_P2_Real.Shared.Cobros> Cobros { get; set; } = default!;
     }
 }
