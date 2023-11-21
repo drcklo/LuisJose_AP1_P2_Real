@@ -11,6 +11,6 @@ namespace LuisJose_AP1_P2_Real.Shared
     {
         [Key]
         public int ClienteId { get; set; }
-        public string Nombres { get; set; }
+        public string? Nombres { get; set; }
     }
 }
