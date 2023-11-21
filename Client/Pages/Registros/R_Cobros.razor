@@ -1,0 +1,15 @@
+﻿@page "/R_Cobros"
+@page "/R_Cobros/{CobroId:int}";
+
+<h3>R_Cobros</h3>
+
+@code {
+
+    [Parameter]
+    public int CobroId { get; set; }
+    public Cobros cobros { get; set; } = new Cobros();
+    public CobrosDetalle cobrosDetalle { get; set; } = new CobrosDetalle();
+    public List<Cobros> ListaCobros { get; set; } = new List<Cobros>();
+    public List<CobrosDetalle> ListaCobrosDetalle { get; set; } = new List<CobrosDetalle>();
+
+}
