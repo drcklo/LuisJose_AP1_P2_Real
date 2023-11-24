@@ -1,15 +1,354 @@
 ﻿@page "/R_Cobros"
-@page "/R_Cobros/{CobroId:int}";
+@page "/R_Cobros/{CobroId:int}"
+@inject HttpClient httpClient
+@inject NotificationService notificationService
 
-<h3>R_Cobros</h3>
+<EditForm Model="cobros" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <div class="container">
+        <div class="card shadow-lg">
+            <div class="card-header">
+                <h3 class="mb-0">Registro de Cobros</h3>
+            </div>
+            <div class="card-body">
+                <div class="col-xs-12 col-sm-12 col-md-8 col-lg-6 col-xl-4 mt-4">
+                    <label class="form-label">Cobros Id</label>
+                    <div class="d-flex align-items-center">
+                        <InputNumber min="0" class="form-control" @bind-Value="cobros.CobroId" />
+                        <button class="btn btn-primary ml-2" type="button" @onclick="Buscar">
+                            <i class="oi oi-magnifying-glass" />
+                        </button>
+                    </div>
+                </div>
 
-@code {
+                <div class="col-xs-12 col-sm-12 col-md-8 col-lg-6 col-xl-4 mt-4 text-right">
+                    <label class="form-label">Fecha</label>
+                    <div class="d-flex align-items-center">
+                        <InputDate class="form-control" @bind-Value="cobros.Fecha" />
+                    </div>
+                </div>
 
+                <label class="form-label">Nombre del Cliente:</label>
+                <InputSelect placeholder="Seleccione un Nombre" @bind-Value="clientes.ClienteId" class="form-select">
+                    <option value="" hidden="hidden">Seleccione un Nombre</option>
+                        @foreach (var item in ListaClientes)
+                        {
+                            <option value="@item.ClienteId">@item.Nombres</option>
+                        }
+                </InputSelect>
+            </div>
+
+            <div class="card-header mt-4">
+
+                <h5>Facturas Pendientes</h5>
+
+                <div class="row">
+                </div>
+
+                <table class='table table-sm mt-2'>
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Fecha</th>
+                            <th>Monto</th>
+                            <th>Balance</th>
+                            <th>Cobrado</th>
+                            <th>Pagar</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="d-flex justify-content-center mb-4 mt-4">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" @onclick="Nuevo"> Nuevo <i class="oi oi-file" /></button>
+                    <button type="submit" class="btn btn-success" @onclick="Guardar"> Guardar <i class="oi oi-document" /></button>
+                    <button type="button" class="btn btn-danger" @onclick="Eliminar">Eliminar <i class="oi oi-trash" /></button>
+                </div>
+            </div>
+        </div>  
+    </div
+</EditForm>
+
+
+@code
+{
     [Parameter]
+
     public int CobroId { get; set; }
     public Cobros cobros { get; set; } = new Cobros();
-    public CobrosDetalle cobrosDetalle { get; set; } = new CobrosDetalle();
-    public List<Cobros> ListaCobros { get; set; } = new List<Cobros>();
-    public List<CobrosDetalle> ListaCobrosDetalle { get; set; } = new List<CobrosDetalle>();
+    public CobrosDetalle Detalles { get; set; } = new CobrosDetalle();
+    public Clientes clientes { get; set; } = new Clientes();
+    public List<Ventas> listaVentas { get; set; } = new List<Ventas>();
+    public List<CobrosDetalle> eliminarDetalles { get; set; } = new List<CobrosDetalle>();
+    public List<CobrosDetalle> ListaDetalles { get; set; } = new List<CobrosDetalle>();
+    public List<Clientes> ListaClientes { get; set; } = new List<Clientes>();
 
+    public float PesoT { get; set; } = 0;
+    public int CobroProducido = 0;
+    public bool idVacio;
+    public bool cantidadCero;
+    public int CobroIdAnterior { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ventas = await httpClient.GetFromJsonAsync<List<Ventas>>("api/Ventas");
+
+        if (ventas is not null)
+        {
+            listaVentas = ventas;
+        }
+	    var clientes = await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes");
+        if (clientes is not null)
+        {
+            ListaClientes = clientes;
+        }
+        if (CobroId > 0)
+        {
+            this.cobros.CobroId = CobroId;
+            await Buscar();
+        }
+    }
+
+    private async Task<Cobros> BuscarCobro(int cobroId)
+    {
+        Cobros cobros = new Cobros();
+        var cobroEncontrado = await httpClient.GetFromJsonAsync<Cobros>($"api/Cobros/{cobroId}");
+        if (cobroEncontrado != null)
+            return cobros = cobroEncontrado;
+        return new Cobros();
+    }
+
+    public async Task Buscar()
+    {
+        ListaDetalles = new List<CobrosDetalle>();
+        eliminarDetalles = new List<CobrosDetalle>();
+        var cobroIdEncontrado = (await httpClient.GetFromJsonAsync<List<Cobros>>($"api/Cobros"))!
+        .ToList()
+        .Any(e => e.CobroId == cobros.CobroId);
+        if (cobroIdEncontrado)
+        {
+            var cobroEncontrado = await httpClient.GetFromJsonAsync<Cobros>($"api/Cobros/{cobros.CobroId}");
+            if (cobroEncontrado != null)
+            {
+                CobroIdAnterior = cobroEncontrado.CobroId;
+                this.cobros = cobroEncontrado;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No se encontro ningun cobro",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
+        }
+    }
+
+    public async Task Guardar()
+    {
+        if(cobros.CobroId < 0)
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "El cobro no puede ser Negativa.",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
+        }
+        using var response = await httpClient.PostAsJsonAsync("api/Cobros", cobros);
+        if (!response.IsSuccessStatusCode)
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No se pudo Guardar correctamente, verifique los campos",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
+        }
+        var cobroDevuelta = await response.Content.ReadFromJsonAsync<Cobros>();
+        if (cobroDevuelta is not null)
+        {
+            if (eliminarDetalles.Count > 0)
+            {
+                foreach (var detalle in eliminarDetalles)
+                {
+                    await httpClient.DeleteAsync($"api/Cobros/DeleteDetalles/{detalle.DetalleId}");
+                    var reducir = listaVentas.FirstOrDefault(p => p.VentaId == detalle.VentaId);
+                    using var responseDetalleEliminado = await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{reducir.VentaId}", reducir);
+                }      
+            }
+            if (ListaDetalles.Count > 0)
+            {
+                foreach (var detalle in ListaDetalles)
+                {
+                    var reducir = listaVentas.FirstOrDefault(p => p.VentaId == detalle.VentaId);
+                    using var responseDetalleAgregado = await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{reducir.VentaId}", reducir);
+                }
+            }
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Éxito",
+                    Detail = "Cobro Guardado Correctamente",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            cobros = cobroDevuelta;
+            if (cobros.VentaId != CobroIdAnterior && CobroIdAnterior != 0)
+            {
+                var ventaAnterior = listaVentas.FirstOrDefault(p => p.VentaId == CobroIdAnterior);
+                await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{ventaAnterior.VentaId}", ventaAnterior);
+
+                var ventaNueva = listaVentas.FirstOrDefault(p => p.VentaId == cobros.VentaId);
+                await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{ventaNueva.VentaId}", ventaNueva);
+            }
+            else
+            {
+                var venta = listaVentas.FirstOrDefault(p => p.VentaId == cobroDevuelta.VentaId);
+                await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{venta.VentaId}", venta);
+            }
+            StateHasChanged();
+            this.Nuevo();
+        }
+    }
+
+    public void Nuevo()
+    {
+        this.cobros = new Cobros();
+        this.Detalles = new CobrosDetalle();
+        eliminarDetalles = new List<CobrosDetalle>();
+        ListaDetalles = new List<CobrosDetalle>();
+    }
+
+    public async Task Eliminar()
+    {
+        var producidoModificado = await httpClient.GetFromJsonAsync<List<Cobros>>($"api/Cobros");
+        if(cobros.CobroId == 0)
+        {
+            var detallesEliminados = new List<CobrosDetalle>(cobros.CobrosDetalle);
+            using var response = await httpClient.DeleteAsync($"api/Cobros/{cobros.CobroId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var mensaje = new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "El cobro no fue eliminado Correctamente",
+                        Duration = 4_000
+                    };
+                notificationService.Notify(mensaje);
+                return;
+            }
+            else
+            {
+                var mensaje = new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Success,
+                        Summary = "Éxito",
+                        Detail = "Cobro eliminado Correctamente",
+                        Duration = 4_000
+                    };
+                notificationService.Notify(mensaje);
+
+                foreach (var detalle in detallesEliminados)
+                {
+                    var venta = listaVentas.FirstOrDefault(p => p.VentaId == detalle.VentaId);
+                    if (venta != null)
+                    {
+                        await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{venta.VentaId}", venta);
+                    }
+                }
+
+                var ventas = listaVentas.FirstOrDefault(p => p.VentaId == cobros.VentaId);
+                await httpClient.PutAsJsonAsync<Ventas>($"api/Ventas/{ventas.VentaId}", ventas);
+            }
+        }
+        else
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "No se puede eliminar",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
+        }
+
+        Nuevo();
+    }
+
+    public bool Validar()
+    {
+        idVacio = (Detalles.VentaId <=0);
+        return idVacio || cantidadCero;
+    }
+
+    public async Task AgregarDetalle()
+    {
+        if (Validar())
+        {
+            var mensaje = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "Llene los campos del detalle Correctamente",
+                    Duration = 4_000
+                };
+            notificationService.Notify(mensaje);
+            return;
+        }
+        var producto = await BuscarVentas(Detalles.VentaId);
+        if(producto != null)
+        {
+        }
+
+        if (cobros != null)
+        {
+            var detalleEncontrado = await httpClient.GetFromJsonAsync<List<CobrosDetalle>>($"api/Cobros");
+            var detalleExiste = detalleEncontrado!.Any(d => d.DetalleId == Detalles.DetalleId);
+            Detalles.CobroId = cobros.CobroId;
+            cobros.CobrosDetalle.Add(Detalles);
+            if(detalleExiste)
+                ListaDetalles.Add(Detalles);
+            if (eliminarDetalles.Any(d => d.DetalleId == Detalles.DetalleId))
+                eliminarDetalles.Remove(Detalles);
+            Detalles = new CobrosDetalle();
+        }
+        StateHasChanged();
+    }
+
+    public void RemoverDetalle(CobrosDetalle detalle)
+    {
+        Detalles = detalle;
+        cobros.CobrosDetalle.Remove(detalle);
+        eliminarDetalles.Add(detalle);
+        if (ListaDetalles.Any(d => d.DetalleId == detalle.DetalleId))
+            ListaDetalles.Remove(detalle);
+        StateHasChanged();
+    }
+
+    private async Task<Ventas> BuscarVentas(int VentaId)
+    {
+        var producto = await httpClient.GetFromJsonAsync<Ventas>($"api/Ventas/{VentaId}");
+
+        return producto ?? new Ventas();
+    }
 }

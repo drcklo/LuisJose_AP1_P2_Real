@@ -15,6 +15,7 @@ namespace LuisJose_AP1_P2_Real.Shared
         public DateTime Fecha { get; set; }
         public double TotalCobrado { get; set; }
         public string? Observaciones { get; set; }
+        public int VentaId { get; set; }
         [ForeignKey("CobroId")]
         public ICollection<CobrosDetalle> CobrosDetalle { get; set; } = new List<CobrosDetalle>();
     }

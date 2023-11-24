@@ -25,10 +25,10 @@ namespace LuisJose_AP1_P2_Real.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Cobros>>> GetCobros()
         {
-          if (_context.Cobros == null)
-          {
-              return NotFound();
-          }
+            if (_context.Cobros == null)
+            {
+                return NotFound();
+            }
             return await _context.Cobros.ToListAsync();
         }
 
@@ -36,11 +36,14 @@ namespace LuisJose_AP1_P2_Real.Server.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Cobros>> GetCobros(int id)
         {
-          if (_context.Cobros == null)
-          {
-              return NotFound();
-          }
-            var cobros = await _context.Cobros.FindAsync(id);
+            if (_context.Cobros == null)
+            {
+                return NotFound();
+            }
+            var cobros = await _context.Cobros
+                .Include(e => e.CobrosDetalle)
+                .Where(e => e.CobroId == id)
+                .FirstOrDefaultAsync();
 
             if (cobros == null)
             {
@@ -86,14 +89,14 @@ namespace LuisJose_AP1_P2_Real.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<Cobros>> PostCobros(Cobros cobros)
         {
-          if (_context.Cobros == null)
-          {
-              return Problem("Entity set 'Context.Cobros'  is null.");
-          }
-            _context.Cobros.Add(cobros);
+            if (!CobrosExists(cobros.CobroId))
+                _context.Cobros.Add(cobros);
+            else
+                _context.Cobros.Update(cobros);
+
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetCobros", new { id = cobros.CobroId }, cobros);
+            return Ok(cobros);
         }
 
         // DELETE: api/Cobros/5
@@ -120,5 +123,27 @@ namespace LuisJose_AP1_P2_Real.Server.Controllers
         {
             return (_context.Cobros?.Any(e => e.CobroId == id)).GetValueOrDefault();
         }
-    }
+
+        [HttpDelete("DeleteDetalles/{id}")]
+        public async Task<IActionResult> DeleteDetalles(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest();
+            }
+            var cobros = await _context.CobrosDetalles.FirstOrDefaultAsync(td => td.DetalleId == id);
+            if (cobros is null)
+            {
+                return NotFound();
+            }
+            _context.CobrosDetalles.Remove(cobros);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+        private bool CobroExists(int id)
+        {
+            return (_context.Cobros?.Any(e => e.CobroId == id)).GetValueOrDefault();
+        }
+    } 
 }

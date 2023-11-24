@@ -1,5 +1,5 @@
 ﻿﻿
-@page "/C_Cobros"
+@page "/C_Ventas"
 @inject HttpClient httpClient
 
 <div class="card">
@@ -9,28 +9,28 @@
             <h3> Inventario de Productos  </h3>
         </div>
 
-        @if (listaCobros is not null)
+        @if (ListaProductos is not null)
         {
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>CobroId</th>
-                        <th>Fecha</th>
-                        <th>Total Cobrado</th>
                         <th>VentaId</th>
-                        <th>Observaciones</th>
+                        <th>Fecha</th>
+                        <th>ClienteId</th>
+                        <th>Monto</th>
+                        <th>Balance</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in listaCobros)
+                    @foreach (var item in ListaProductos)
                     {
                         <tr>
-                            <td>@item.CobroId</td>
-                            <td>@item.Fecha</td>
-                            <td>@item.TotalCobrado</td>
                             <td>@item.VentaId</td>
-                            <td>@item.Observaciones</td>  
+                            <td>@item.Fecha</td>
+                            <td>@item.ClienteId</td>
+                            <td>@item.Monto</td>
+                            <td>@item.Balance</td>
                         </tr>
                     }
                     <tr>
@@ -44,9 +44,8 @@
     </div>
 </div>
 
-
 @code {
-    public List<Cobros>? listaCobros { get; set; }
+    public List<Ventas>? ListaProductos { get; set; }
     public int conteo { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -56,9 +55,9 @@
 
     public async Task Buscar()
     {
-        listaCobros = await httpClient.GetFromJsonAsync<List<Cobros>>($"api/Cobros");
+        ListaProductos = await httpClient.GetFromJsonAsync<List<Ventas>>($"api/Ventas");
 
-        conteo = listaCobros != null ? listaCobros!.Count() : 0;
+        conteo = ListaProductos != null ? ListaProductos!.Count() : 0;
         StateHasChanged();
     }
 }
